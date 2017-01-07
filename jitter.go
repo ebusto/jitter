@@ -18,7 +18,7 @@ type Jitter struct {
 }
 
 var defaultConfig = &Config{
-	Delay:  20 * time.Millisecond,
+	Delay:  5 * time.Millisecond,
 	Random: 0.001,
 	Skip:   0.001,
 }
@@ -27,6 +27,8 @@ func New(cn io.ReadWriter, cf *Config) *Jitter {
 	if cf == nil {
 		cf = defaultConfig
 	}
+
+	rand.Seed(time.Now().Unix())
 
 	return &Jitter{cn, cf}
 }
@@ -51,8 +53,8 @@ func (j *Jitter) Copy(dst []byte, src []byte) int {
 		n++
 	}
 
-	if d := time.Duration(rand.Int63n(int64(c.Delay))); d > 0 {
-		time.Sleep(d)
+	if c.Delay > 0 {
+		time.Sleep(time.Duration(rand.Int63n(int64(c.Delay))))
 	}
 
 	return n
@@ -70,6 +72,7 @@ func (j *Jitter) Write(p []byte) (int, error) {
 	b := make([]byte, len(p))
 
 	n := j.Copy(b, p)
+	_, err := j.cn.Write(b[:n])
 
-	return j.cn.Write(b[:n])
+	return len(p), err
 }
